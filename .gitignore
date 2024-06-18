@@ -14,3 +14,4 @@ venv/
 out/
 out_1/
 wandb/
+**/.history
