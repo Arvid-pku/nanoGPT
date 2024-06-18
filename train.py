@@ -122,9 +122,34 @@ def get_batch(split):
         data = np.memmap(os.path.join(data_dir, 'train.bin'), dtype=np.uint16, mode='r')
     else:
         data = np.memmap(os.path.join(data_dir, 'val.bin'), dtype=np.uint16, mode='r')
+    
+    ## Normal
     ix = torch.randint(len(data) - block_size, (batch_size,))
-    y = torch.stack([torch.flip(torch.from_numpy((data[i:i+block_size]).astype(np.int64)), dims=[0]) for i in ix])
-    x = torch.stack([torch.flip(torch.from_numpy((data[i+1:i+1+block_size]).astype(np.int64)), dims=[0]) for i in ix])
+
+    # debug
+    # ix = torch.tensor([0, 1], dtype=torch.int64) # debug
+    # # make mock x and ys from 1-n
+    # x = torch.stack([torch.arange(i, i+block_size) for i in ix])
+    # y = torch.stack([torch.arange(i+1, i+1+block_size) for i in ix])
+
+    x = torch.stack([torch.from_numpy((data[i:i+block_size]).astype(np.int64)) for i in ix])
+    y = torch.stack([torch.from_numpy((data[i+1:i+1+block_size]).astype(np.int64)) for i in ix])
+
+    """
+    reverse x-> ex: 
+    x (0, 1, 2, 3), y (1, 2, 3, 4)
+    to ->
+    x (4, 3, 2, 1), y (3, 2, 1, 0)
+    """
+    ## Reverse
+    y = torch.flip(x, dims=[1])
+    x = torch.flip(y, dims=[1])
+
+    # ## Reverse
+    # ix = torch.randint(len(data) - block_size, (batch_size,))
+    # y = torch.stack([torch.flip(torch.from_numpy((data[i:i+block_size]).astype(np.int64)), dims=[0]) for i in ix])
+    # x = torch.stack([torch.flip(torch.from_numpy((data[i+1:i+1+block_size]).astype(np.int64)), dims=[0]) for i in ix])
+
     if device_type == 'cuda':
         # pin arrays x,y, which allows us to move them to GPU asynchronously (non_blocking=True)
         x, y = x.pin_memory().to(device, non_blocking=True), y.pin_memory().to(device, non_blocking=True)
